@@ -63,7 +63,7 @@ if (isset($_SESSION['auth'])) {
                 <button class="btn btn-primary w-100 mt-2">Login</button>
 
                 <p class="text-center text-muted mt-3 small">
-                    Login sebagai <b>admin@test.com</b></b><br>
+                    Login sebagai <b>superadmin@test.com</b></b><br>
                     Password: <b>password</b>
                 </p>
 

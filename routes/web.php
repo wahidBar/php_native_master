@@ -5,12 +5,7 @@ require_once 'controllers/RoleController.php';
 require_once 'controllers/UserController.php';
 require_once 'controllers/PermissionController.php';
 require_once 'controllers/DashboardController.php';
-require_once 'controllers/BarangController.php';
 require_once 'controllers/MenuController.php';
-require_once 'controllers/UnitsController.php';
-require_once 'controllers/CategoriesController.php';
-require_once 'controllers/SatuanController.php';
-require_once 'controllers/AsalUsulController.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -99,68 +94,7 @@ switch ($prefix) {
         $controller = new PermissionController();
         break;
 
-    case 'barang':
-
-        match ($method) {
-            'index', 'show'   => require_permission('barang.view'),
-            'create', 'store' => require_permission('barang.create'),
-            'edit', 'update'  => require_permission('barang.edit'),
-            'delete'          => require_permission('barang.delete'),
-            default           => null
-        };
-
-        $controller = new BarangController();
-        break;
-
-    case 'categories':
-
-        match ($method) {
-            'index', 'show'   => require_permission('categories.view'),
-            'create', 'store' => require_permission('categories.create'),
-            'edit', 'update'  => require_permission('categories.edit'),
-            'delete'          => require_permission('categories.delete'),
-            default           => null
-        };
-
-        $controller = new CategoriesController();
-        break;
-
-    case 'units':
-
-        match ($method) {
-            'index', 'show'   => require_permission('units.view'),
-            'create', 'store' => require_permission('units.create'),
-            'edit', 'update'  => require_permission('units.edit'),
-            'delete'          => require_permission('units.delete'),
-            default           => null
-        };
-
-        $controller = new UnitsController();
-        break;
-    case 'satuan':
-
-        match ($method) {
-            'index', 'show'   => require_permission('satuan.view'),
-            'create', 'store' => require_permission('satuan.create'),
-            'edit', 'update'  => require_permission('satuan.edit'),
-            'delete'          => require_permission('satuan.delete'),
-            default           => null
-        };
-
-        $controller = new SatuanController();
-        break;
-    case 'asal_usul':
-
-        match ($method) {
-            'index', 'show'   => require_permission('asal_usul.view'),
-            'create', 'store' => require_permission('asal_usul.create'),
-            'edit', 'update'  => require_permission('asal_usul.edit'),
-            'delete'          => require_permission('asal_usul.delete'),
-            default           => null
-        };
-
-        $controller = new AsalUsulController();
-        break;
+    
     default:
         abort(404, "Route Not Found", "Halaman tidak ditemukan.");
 }

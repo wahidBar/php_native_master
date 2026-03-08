@@ -3,16 +3,16 @@ require_once './config/db.php';
 
 try {
 
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->exec("SET FOREIGN_KEY_CHECKS=0");
+  $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+  $pdo->exec("SET FOREIGN_KEY_CHECKS=0");
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | ROLES
     |--------------------------------------------------------------------------
     */
 
-    $pdo->exec("
+  $pdo->exec("
     CREATE TABLE IF NOT EXISTS roles (
       id int NOT NULL AUTO_INCREMENT,
       name varchar(100) NOT NULL,
@@ -24,13 +24,13 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ");
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | PERMISSIONS
     |--------------------------------------------------------------------------
     */
 
-    $pdo->exec("
+  $pdo->exec("
     CREATE TABLE IF NOT EXISTS permissions (
       id int NOT NULL AUTO_INCREMENT,
       name varchar(150) NOT NULL,
@@ -41,13 +41,13 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ");
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | MENUS
     |--------------------------------------------------------------------------
     */
 
-    $pdo->exec("
+  $pdo->exec("
     CREATE TABLE IF NOT EXISTS menus (
       id int NOT NULL AUTO_INCREMENT,
       name varchar(150) NOT NULL,
@@ -62,13 +62,13 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ");
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | USERS
     |--------------------------------------------------------------------------
     */
 
-    $pdo->exec("
+  $pdo->exec("
     CREATE TABLE IF NOT EXISTS users (
       id smallint unsigned NOT NULL AUTO_INCREMENT,
       email varchar(100) CHARACTER SET latin1 COLLATE latin1_general_ci NOT NULL,
@@ -96,13 +96,13 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
     ");
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | ROLE PERMISSIONS
     |--------------------------------------------------------------------------
     */
 
-    $pdo->exec("
+  $pdo->exec("
     CREATE TABLE IF NOT EXISTS role_permissions (
       role_id int NOT NULL,
       permission_id int NOT NULL,
@@ -113,13 +113,13 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ");
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | MENU PERMISSIONS
     |--------------------------------------------------------------------------
     */
 
-    $pdo->exec("
+  $pdo->exec("
     CREATE TABLE IF NOT EXISTS menu_permissions (
       menu_id int NOT NULL,
       permission_id int NOT NULL,
@@ -130,15 +130,15 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ");
 
-    echo "Tables created<br>";
+  echo "Tables created<br>";
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | SEED ROLES
     |--------------------------------------------------------------------------
     */
 
-    $pdo->exec("
+  $pdo->exec("
     INSERT INTO roles (id,name,slug,created_at) VALUES
     (1,'SUPER ADMIN','super-admin','2026-02-16 05:06:56'),
     (2,'GUDANG','gudang','2026-02-16 05:06:56'),
@@ -148,13 +148,13 @@ try {
     ON DUPLICATE KEY UPDATE name=name;
     ");
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | SEED PERMISSIONS
     |--------------------------------------------------------------------------
     */
 
-    $pdo->exec("
+  $pdo->exec("
     INSERT INTO permissions (id,name,slug,created_at) VALUES
     (1,'View Dashboard','dashboard.view','2026-02-16 05:06:56'),
     (2,'View User','users.view','2026-03-05 17:42:54'),
@@ -176,13 +176,13 @@ try {
     ON DUPLICATE KEY UPDATE name=name;
     ");
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | SEED MENUS
     |--------------------------------------------------------------------------
     */
 
-    $pdo->exec("
+  $pdo->exec("
     INSERT INTO menus (id,name,route,icon,parent_id,order_number,created_at) VALUES
     (1,'Dashboard','dashboard','fas fa-home',NULL,1,'2026-02-16 05:06:59'),
     (2,'Users','users.index','fas fa-users',67,2,'2026-02-16 05:06:59'),
@@ -194,13 +194,13 @@ try {
     ON DUPLICATE KEY UPDATE name=name;
     ");
 
-    /*
+  /*
     |--------------------------------------------------------------------------
     | ROLE PERMISSIONS
     |--------------------------------------------------------------------------
     */
 
-    $pdo->exec("
+  $pdo->exec("
     INSERT INTO `role_permissions` VALUES
     (1,1),
     (2,1),
@@ -222,13 +222,13 @@ try {
     (1,214);
     ");
 
-     /*
+  /*
     |--------------------------------------------------------------------------
     | SEED MENUS
     |--------------------------------------------------------------------------
     */
 
-    $pdo->exec("
+  $pdo->exec("
     INSERT INTO `menu_permissions` VALUES
     (1,1),
     (2,2),
@@ -250,29 +250,27 @@ try {
     ");
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | SEED USER
-    |--------------------------------------------------------------------------
-    */
+  /*
+|--------------------------------------------------------------------------
+| SEED USER
+|--------------------------------------------------------------------------
+*/
 
+  $password = password_hash('password', PASSWORD_BCRYPT);
 
-    $password = password_hash('password', PASSWORD_BCRYPT);
+  $stmt = $pdo->prepare("
+    INSERT INTO users (role_id,name,email,password,email_verified_at)
+    VALUES (1,'Super Admin','superadmin@test.com',?, NOW())
+    ON DUPLICATE KEY UPDATE name=name
+  ");
 
-    $stmt = $pdo->prepare("
-        INSERT INTO users (role_id,name,email,password)
-        VALUES (1,'Super Admin','superadmin@test.com',?)
-        ON DUPLICATE KEY UPDATE name=name
-    ");
+  $stmt->execute([$password]);
 
-    $stmt->execute([$password]);
+  $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
 
-    $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
-
-    echo "Seeder executed successfully.";
-
-    $pdo->exec("SET FOREIGN_KEY_CHECKS=1");
+  echo "Seeder executed successfully.";
+  $pdo->exec("SET FOREIGN_KEY_CHECKS=1");
 } catch (PDOException $e) {
 
-    echo $e->getMessage();
+  echo $e->getMessage();
 }
