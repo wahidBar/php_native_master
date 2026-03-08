@@ -1,53 +1,60 @@
-Master RBAC PHP Native
+# PHP Native RBAC Admin Panel
 
-Sistem Role Based Access Control (RBAC) berbasis PHP Native + MySQL + PDO yang dilengkapi dengan CRUD Generator otomatis dan Dynamic Menu Permission.
+Simple **Role Based Access Control (RBAC)** admin panel built with **PHP Native + MySQL + PDO**.
 
-Project ini dibuat sebagai starter template admin panel PHP Native yang memiliki sistem manajemen role, permission, dan menu yang fleksibel.
+This project provides a lightweight **Admin Panel Starter Template** with dynamic menu management, permission control, and automatic CRUD generation.
 
-Features
+---
 
-Login Authentication
+# ✨ Features
 
-Role Based Access Control (RBAC)
+- Authentication System
+- Role Based Access Control (RBAC)
+- Dynamic Sidebar Menu based on Permission
+- Menu Management
+- Permission Management
+- Role Permission Mapping
+- Menu Permission Mapping
+- Automatic CRUD Generator
+- Pagination
+- Search
+- Clean MVC Structure
 
-Dynamic Sidebar Menu berdasarkan permission
+---
 
-Permission per menu (View, Create, Update, Delete)
+# 🧱 Architecture
 
-CRUD Generator otomatis dari tabel database
+The system follows a simple **MVC pattern**.
 
-Relasi tabel otomatis untuk form select
 
-Pagination
-
-Search otomatis
-
-Clean MVC Structure (Controller, Model, View)
-
-Folder Structure
 /app
-   /controllers
-   /models
-   /views
+/controllers
+/models
+/views
 
 /core
-   Controller.php
-   Model.php
-   Router.php
+Controller.php
+Model.php
+Router.php
 
 /helpers
-   auth.php
-   permission.php
+auth.php
+permission.php
 
 /public
-   index.php
-   assets/
+index.php
+assets/
 
 /config
-   database.php
-Database Structure (RBAC)
+database.php
 
-Tabel utama RBAC:
+
+---
+
+# 🗄️ Database Structure (RBAC)
+
+Main tables used by the RBAC system:
+
 
 roles
 permissions
@@ -56,182 +63,264 @@ menu_permissions
 role_permissions
 users
 
-Relasi RBAC:
+
+RBAC Relationship Flow:
+
 
 roles
-   ↓
+↓
 role_permissions
-   ↓
+↓
 permissions
-   ↓
+↓
 menu_permissions
-   ↓
+↓
 menus
 
-Artinya:
+
+Meaning:
+
 
 Role → Permission → Menu
-Konsep Permission
 
-Setiap menu memiliki 4 permission dasar:
+
+---
+
+# 🔐 Permission Concept
+
+Each menu automatically has **4 basic permissions**:
+
 
 {menu}.view
 {menu}.create
 {menu}.update
 {menu}.delete
 
-Contoh:
 
-Menu Users
+Example for `users` menu:
+
 
 users.view
 users.create
 users.update
 users.delete
 
-Permission ini akan dihubungkan ke:
 
-menu_permissions
+These permissions are stored in:
 
-Kemudian diberikan ke role melalui:
+
+permissions
+
+
+And assigned to roles via:
+
 
 role_permissions
-Membuat Menu + CRUD Generator
 
-Menu baru dapat dibuat sekaligus menghasilkan CRUD otomatis.
 
-Masuk ke menu:
+---
 
-Menu Management → Tambah Menu
+# 📋 Creating Menu with CRUD Generator
 
-Contoh tampilan form:
+This system allows you to **create a menu and generate CRUD automatically** from a selected database table.
 
-Form Pembuatan Menu
+Navigate to:
 
-Isi field berikut:
 
-Field	Keterangan
-Nama Menu	Nama menu yang tampil di sidebar
-Route	URL route menu
-Icon	Icon sidebar
-Parent Menu	Jika menu merupakan submenu
-Posisi Setelah Menu	Mengatur urutan menu
+Menu Management → Add Menu
 
-Contoh:
 
-Nama Menu : Product
-Route     : products
-Icon      : fas fa-box
-Parent    : Master
-Mengaktifkan CRUD Generator
+Example interface:
 
-Aktifkan toggle:
+![Menu Generator](docs/menu-generator.png)
 
-Aktifkan CRUD Generator
+---
 
-Kemudian isi konfigurasi berikut.
+# 📝 Menu Form Fields
 
-Field	Keterangan
-Nama Controller	Nama controller yang akan dibuat
-Nama Model	Nama model
-Nama Folder View	Folder view
-Pilih Tabel Database	Tabel yang akan dijadikan CRUD
+| Field | Description |
+|------|-------------|
+| Menu Name | Menu name displayed in sidebar |
+| Route | URL route |
+| Icon | Sidebar icon |
+| Parent Menu | If the menu is a submenu |
+| Position After Menu | Menu order |
 
-Contoh:
+Example:
+
+
+Menu Name : Product
+Route : products
+Icon : fas fa-box
+Parent : Master
+
+
+---
+
+# ⚙️ Enable CRUD Generator
+
+Activate the toggle:
+
+
+Enable CRUD Generator
+
+
+Then configure the generator.
+
+| Field | Description |
+|------|-------------|
+| Controller Name | Controller class |
+| Model Name | Model class |
+| View Folder | View folder name |
+| Database Table | Table used for CRUD |
+
+Example configuration:
+
 
 Controller : Product
-Model      : Product
-View       : products
-Table      : products
-File yang Dihasilkan Generator
+Model : Product
+View : products
+Table : products
 
-Setelah klik Simpan, sistem akan otomatis membuat:
 
-Controller
+---
+
+# 📂 Generated Files
+
+After clicking **Save**, the system automatically generates:
+
+### Controller
+
+
 /app/controllers/ProductController.php
-Model
+
+
+### Model
+
+
 /app/models/ProductModel.php
-Views
-/app/views/products/
 
-   index.php
-   create.php
-   edit.php
-   form.php
-Data yang Dibuat di Database
 
-Selain file CRUD, sistem juga otomatis membuat data RBAC.
+### Views
 
-1 Menu
 
-Masuk ke tabel:
+/app/views/products
+
+index.php
+create.php
+edit.php
+form.php
+
+
+---
+
+# 🗃️ Database Records Created
+
+When a menu is created, the system automatically inserts:
+
+## 1️⃣ Menu
+
+Stored in:
+
 
 menus
-2 Permissions
 
-Sistem otomatis membuat:
+
+---
+
+## 2️⃣ Permissions
+
+Automatically generated permissions:
+
 
 products.view
 products.create
 products.update
 products.delete
 
-Disimpan pada tabel:
+
+Stored in:
+
 
 permissions
-3 Menu Permission Mapping
 
-Relasi antara menu dan permission:
+
+---
+
+## 3️⃣ Menu Permission Mapping
+
+Permission-to-menu relation stored in:
+
 
 menu_permissions
 
-Contoh:
+
+Example:
+
 
 menu_id | permission_id
-4 Superadmin Permission
 
-Role Superadmin otomatis mendapatkan semua permission dari menu baru:
+
+---
+
+## 4️⃣ Superadmin Access
+
+The **Superadmin role automatically receives full access**:
+
 
 view
 create
 update
 delete
 
-Sehingga superadmin langsung dapat mengakses menu tersebut.
 
-Mengatur Permission Role
+This ensures the new menu is always accessible to superadmin.
 
-Masuk ke menu:
+---
+
+# 👥 Managing Role Permissions
+
+Navigate to:
+
 
 Roles
 
-Pilih role yang ingin diatur.
 
-Contoh role:
+Select a role:
+
 
 Superadmin
 Admin
 Staff
 
-Kemudian centang permission yang diizinkan.
 
-Contoh:
+Then enable the permissions.
 
-[✓] products.view
-[✓] products.create
-[✓] products.update
-[ ] products.delete
+Example:
 
-Data akan disimpan pada tabel:
+
+✔ products.view
+✔ products.create
+✔ products.update
+✖ products.delete
+
+
+These permissions are saved in:
+
 
 role_permissions
-Menggunakan Permission di Controller
 
-Gunakan helper berikut untuk membatasi akses.
 
+---
+
+# 🛡️ Using Permission in Controller
+
+Use the helper function:
+
+```php
 require_permission('products.view');
 
-Contoh:
+Example:
 
 public function index()
 {
@@ -241,7 +330,7 @@ public function index()
 
     view('products/index', compact('products'));
 }
-Contoh Permission CRUD
+CRUD Permission Examples
 View
 require_permission('products.view');
 Create
@@ -251,40 +340,26 @@ require_permission('products.update');
 Delete
 require_permission('products.delete');
 
-Jika user tidak memiliki permission maka otomatis:
+If the user does not have permission, the system returns:
 
 403 Forbidden
-Dynamic Sidebar Menu
+📑 Pagination
 
-Sidebar menu akan muncul berdasarkan permission user.
-
-Contoh:
-
-Jika user hanya memiliki:
-
-products.view
-
-Menu Products tetap muncul tetapi user hanya dapat melihat data.
-
-Jika user tidak memiliki permission, maka menu tidak akan tampil.
-
-Pagination
-
-Pagination menggunakan parameter:
+Pagination uses the following parameter:
 
 ?page=1
 
-Contoh:
+Example:
 
 /products?page=2
-Search
+🔎 Search
 
-Search otomatis tersedia untuk tipe kolom:
+Search is automatically enabled for database columns with type:
 
 varchar
 text
 char
-Requirements
+⚙️ Requirements
 
 Server:
 
@@ -292,37 +367,37 @@ PHP >= 8.0
 MySQL >= 5.7
 Apache / Nginx
 
-Extension:
+PHP Extensions:
 
 PDO
 PDO MYSQL
-Security
+🔒 Security
 
-Sistem sudah menggunakan:
+The system already implements:
 
-PDO Prepared Statement
+PDO Prepared Statements
 
 RBAC Authorization
 
 Session Authentication
 
-Future Development
+🚀 Future Development
 
-Fitur yang dapat dikembangkan:
+Potential features for future development:
 
-API RBAC
+RBAC API
 
-Permission per button
+Button-level permissions
 
 Activity Log
 
-Multi Role User
+Multi-role users
 
 Soft Delete
 
-Import Export
+Import / Export
 
-Author
+👨‍💻 Author
 
 Developed by
 
