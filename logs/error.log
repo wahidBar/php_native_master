@@ -1,0 +1,80 @@
+[2026-02-14 12:49:19] ERROR: Login gagal
+Message: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'db_asetrsig.users' doesn't exist
+Trace: #0 /var/www/wahid.cyber/PHP-NATIVE/php_native/controllers/AuthController.php(23): PDOStatement->execute()
+#1 /var/www/wahid.cyber/PHP-NATIVE/php_native/index.php(145): AuthController->loginProcess()
+#2 {main}
+
+[2026-02-15 01:28:22] ERROR: Login gagal
+Message: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'dbaset_rsijs.users' doesn't exist
+Trace: #0 /var/www/wahid.cyber/PHP-NATIVE/php_native/controllers/AuthController.php(47): PDOStatement->execute()
+#1 /var/www/wahid.cyber/PHP-NATIVE/php_native/index.php(145): AuthController->loginProcess()
+#2 {main}
+
+[2026-02-16 02:13:03] ERROR: Login gagal
+Message: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'dbaset_rsijs.users' doesn't exist
+Trace: #0 /var/www/wahid.cyber/PHP-NATIVE/php_native/controllers/AuthController.php(23): PDOStatement->execute()
+#1 /var/www/wahid.cyber/PHP-NATIVE/php_native/index.php(145): AuthController->loginProcess()
+#2 {main}
+
+[2026-02-16 02:13:50] ERROR: Login gagal
+Message: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'dbaset_rsijs.users' doesn't exist
+Trace: #0 /var/www/wahid.cyber/PHP-NATIVE/php_native/controllers/AuthController.php(23): PDOStatement->execute()
+#1 /var/www/wahid.cyber/PHP-NATIVE/php_native/index.php(145): AuthController->loginProcess()
+#2 {main}
+
+[2026-02-19 00:10:35] ERROR: Login gagal
+Message: SQLSTATE[22001]: String data, right truncated: 1406 Data too long for column 'password' at row 1
+Trace: #0 /var/www/wahid.cyber/PHP-NATIVE/php_native/controllers/AuthController.php(67): PDOStatement->execute()
+#1 /var/www/wahid.cyber/PHP-NATIVE/php_native/routes/web.php(126): AuthController->loginProcess()
+#2 /var/www/wahid.cyber/PHP-NATIVE/php_native/index.php(27): require_once('...')
+#3 {main}
+---------------------------------
+[2026-02-19 00:12:30] ERROR: Login gagal
+Message: SQLSTATE[22001]: String data, right truncated: 1406 Data too long for column 'password' at row 1
+Trace: #0 /var/www/wahid.cyber/PHP-NATIVE/php_native/controllers/AuthController.php(67): PDOStatement->execute()
+#1 /var/www/wahid.cyber/PHP-NATIVE/php_native/routes/web.php(126): AuthController->loginProcess()
+#2 /var/www/wahid.cyber/PHP-NATIVE/php_native/index.php(27): require_once('...')
+#3 {main}
+---------------------------------
+[2026-03-02 12:59:14] ERROR: Gagal membuat menu
+Message: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '1-60' for key 'role_permissions.PRIMARY'
+Trace: #0 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/controllers/MenuController.php(212): PDOStatement->execute()
+#1 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/routes/web.php(166): MenuController->store()
+#2 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/index.php(27): require_once('...')
+#3 {main}
+---------------------------------
+[2026-03-02 13:02:58] ERROR: Gagal membuat menu
+Message: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '1-60' for key 'role_permissions.PRIMARY'
+Trace: #0 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/controllers/MenuController.php(212): PDOStatement->execute()
+#1 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/routes/web.php(166): MenuController->store()
+#2 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/index.php(27): require_once('...')
+#3 {main}
+---------------------------------
+[2026-03-02 13:06:45] ERROR: Gagal membuat menu
+Message: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '1-60' for key 'role_permissions.PRIMARY'
+Trace: #0 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/controllers/MenuController.php(212): PDOStatement->execute()
+#1 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/routes/web.php(166): MenuController->store()
+#2 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/index.php(27): require_once('...')
+#3 {main}
+---------------------------------
+[2026-03-02 13:07:05] ERROR: Gagal membuat menu
+Message: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '1-60' for key 'role_permissions.PRIMARY'
+Trace: #0 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/controllers/MenuController.php(212): PDOStatement->execute()
+#1 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/routes/web.php(166): MenuController->store()
+#2 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/index.php(27): require_once('...')
+#3 {main}
+---------------------------------
+[2026-03-02 13:07:31] ERROR: Gagal membuat menu
+Message: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '1-60' for key 'role_permissions.PRIMARY'
+Trace: #0 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/controllers/MenuController.php(212): PDOStatement->execute()
+#1 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/routes/web.php(166): MenuController->store()
+#2 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/index.php(27): require_once('...')
+#3 {main}
+---------------------------------
+[2026-03-02 13:07:50] ERROR: Gagal membuat menu
+Message: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '1-60' for key 'role_permissions.PRIMARY'
+Trace: #0 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/controllers/MenuController.php(212): PDOStatement->execute()
+#1 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/routes/web.php(166): MenuController->store()
+#2 /var/www/wahid.cyber/PHP-NATIVE/rsigk-aset/index.php(27): require_once('...')
+#3 {main}
+---------------------------------
