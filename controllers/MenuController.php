@@ -278,14 +278,19 @@ class MenuController extends BaseController
                     if (!preg_match('/^[a-zA-Z0-9_]+$/', $table)) continue;
 
                     $stmtCol = $pdo->prepare("
-                    SELECT COLUMN_NAME, DATA_TYPE, COLUMN_KEY, IS_NULLABLE
-                    FROM information_schema.columns
-                    WHERE table_schema = DATABASE()
-                    AND table_name = ?
-                ");
+                        SELECT 
+                            COLUMN_NAME,
+                            DATA_TYPE,
+                            COLUMN_TYPE,
+                            COLUMN_KEY,
+                            IS_NULLABLE,
+                            EXTRA
+                        FROM information_schema.columns
+                        WHERE table_schema = DATABASE()
+                        AND table_name = ?
+                    ");
                     $stmtCol->execute([$table]);
-                    $columns = $stmtCol->fetchAll();
-
+                    $columns = $stmtCol->fetchAll(PDO::FETCH_ASSOC);
                     if (!$columns) continue;
 
                     $pk = 'id';
@@ -296,15 +301,17 @@ class MenuController extends BaseController
                     }
 
                     $stmtRel = $pdo->prepare("
-                    SELECT COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
-                    FROM information_schema.key_column_usage
-                    WHERE table_schema = DATABASE()
-                    AND table_name = ?
-                    AND REFERENCED_TABLE_NAME IS NOT NULL
-                ");
+                        SELECT 
+                            COLUMN_NAME,
+                            REFERENCED_TABLE_NAME,
+                            REFERENCED_COLUMN_NAME
+                        FROM information_schema.key_column_usage
+                        WHERE table_schema = DATABASE()
+                        AND table_name = ?
+                        AND REFERENCED_TABLE_NAME IS NOT NULL
+                    ");
                     $stmtRel->execute([$table]);
-                    $relations = $stmtRel->fetchAll();
-
+                    $relations = $stmtRel->fetchAll(PDO::FETCH_ASSOC);
                     $this->generateModel($model, $table, $pk, $columns, $relations);
                     $this->generateController($controller, $model, $view, $table, $pk);
                     $this->generateViews($view, $table, $pk, $columns, $relations);
@@ -674,42 +681,90 @@ class MenuController extends BaseController
     {
         $file = BASE_PATH . "/models/" . $model . "Model.php";
 
+        /* ================= SEARCHABLE ================= */
+
         $searchable = [];
+
         foreach ($columns as $col) {
-            if (in_array(strtolower($col['DATA_TYPE']), ['varchar', 'text', 'char', 'longtext'])) {
+
+            $type = strtolower($col['DATA_TYPE']);
+
+            if (in_array($type, ['varchar', 'text', 'char', 'longtext', 'mediumtext'])) {
                 $searchable[] = $col['COLUMN_NAME'];
             }
         }
 
-        $searchArrayExport = var_export($searchable, true);
+        $searchArray = var_export($searchable, true);
+
+        /* ================= JOIN RELATIONS ================= */
+
+        $joins = [];
+        $selectRelations = [];
+
+        foreach ($relations as $rel) {
+
+            $column = $rel['COLUMN_NAME'];
+            $refTable = $rel['REFERENCED_TABLE_NAME'];
+            $refColumn = $rel['REFERENCED_COLUMN_NAME'];
+
+            $alias = $refTable . "_rel";
+
+            $joins[] = "LEFT JOIN {$refTable} {$alias}
+                    ON {$table}.{$column} = {$alias}.{$refColumn}";
+
+            $selectRelations[] = "{$alias}.name AS {$column}_label";
+        }
+
+        $joinSql = implode("\n", $joins);
+
+        $selectRelSql = "";
+
+        if (!empty($selectRelations)) {
+            $selectRelSql = ", " . implode(",", $selectRelations);
+        }
+
+        /* ================= MODEL CODE ================= */
 
         $code = "<?php
+
 class {$model}Model {
 
     private \$pdo;
+
     private \$table = '{$table}';
+
     private \$pk = '{$pk}';
-    private \$searchable = {$searchArrayExport};
+
+    private \$searchable = {$searchArray};
 
     public function __construct(\$pdo){
         \$this->pdo = \$pdo;
     }
 
+    /* ================= PAGINATE ================= */
+
     public function paginate(\$search='', \$page=1, \$limit=10, \$sort=null, \$order='asc'){
+
         \$offset = (\$page-1)*\$limit;
+
         \$where = ' WHERE 1=1 ';
         \$params = [];
 
         if(!empty(\$search) && !empty(\$this->searchable)){
+
             \$like = [];
+
             foreach(\$this->searchable as \$field){
+
                 \$like[] = \"{\$this->table}.\$field LIKE :search\";
+
             }
+
             \$where .= \" AND (\".implode(' OR ',\$like).\")\";
+
             \$params['search'] = \"%{\$search}%\";
         }
 
-        // validasi sort
         \$allowedSort = \$this->searchable;
         \$allowedSort[] = \$this->pk;
 
@@ -717,10 +772,17 @@ class {$model}Model {
             \$sort = \$this->pk;
         }
 
-        \$order = strtolower(\$order) === 'desc' ? 'DESC' : 'ASC';
+        \$order = strtolower(\$order)==='desc' ? 'DESC' : 'ASC';
 
-        \$sql = \"SELECT * FROM {\$this->table} \".\$where.\"
-                ORDER BY {\$sort} {\$order}
+        \$sql = \"SELECT {\$this->table}.* {$selectRelSql}
+                FROM {\$this->table}
+
+                {$joinSql}
+
+                {\$where}
+
+                ORDER BY {\$this->table}.{\$sort} {\$order}
+
                 LIMIT :limit OFFSET :offset\";
 
         \$stmt = \$this->pdo->prepare(\$sql);
@@ -733,49 +795,83 @@ class {$model}Model {
         \$stmt->bindValue(':offset',(int)\$offset,PDO::PARAM_INT);
 
         \$stmt->execute();
+
         return \$stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /* ================= COUNT ================= */
+
     public function count(\$search=''){
+
         \$where = ' WHERE 1=1 ';
         \$params = [];
 
         if(!empty(\$search) && !empty(\$this->searchable)){
+
             \$like = [];
+
             foreach(\$this->searchable as \$field){
+
                 \$like[] = \"{\$this->table}.\$field LIKE :search\";
+
             }
+
             \$where .= \" AND (\".implode(' OR ',\$like).\")\";
+
             \$params['search'] = \"%{\$search}%\";
         }
 
-        \$sql = \"SELECT COUNT(*) FROM {\$this->table} \".\$where;
+        \$sql = \"SELECT COUNT(*) 
+                FROM {\$this->table}
+
+                {$joinSql}
+
+                {\$where}\";
+
         \$stmt = \$this->pdo->prepare(\$sql);
+
         foreach(\$params as \$k=>\$v){
             \$stmt->bindValue(':'.\$k,\$v);
         }
+
         \$stmt->execute();
+
         return \$stmt->fetchColumn();
     }
 
+    /* ================= FIND ================= */
+
     public function find(\$id){
-        \$stmt = \$this->pdo->prepare(
-            \"SELECT * FROM {\$this->table} WHERE {\$this->pk} = :id\"
-        );
+
+        \$sql = \"SELECT {\$this->table}.* {$selectRelSql}
+                FROM {\$this->table}
+
+                {$joinSql}
+
+                WHERE {\$this->table}.{\$this->pk} = :id\";
+
+        \$stmt = \$this->pdo->prepare(\$sql);
+
         \$stmt->execute(['id'=>\$id]);
+
         return \$stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /* ================= INSERT ================= */
+
     public function insert(\$data){
+
         if(empty(\$data)) return false;
 
         \$fields = array_keys(\$data);
+
         \$placeholders = array_map(fn(\$f)=>\":\$f\",\$fields);
 
         \$sql = \"INSERT INTO {\$this->table} (\".implode(',',\$fields).\")
                 VALUES (\".implode(',',\$placeholders).\")\";
 
         \$stmt = \$this->pdo->prepare(\$sql);
+
         if(!\$stmt->execute(\$data)){
             return false;
         }
@@ -783,12 +879,18 @@ class {$model}Model {
         return \$this->pdo->lastInsertId();
     }
 
+    /* ================= UPDATE ================= */
+
     public function update(\$id,\$data){
+
         if(!\$id || empty(\$data)) return false;
 
         \$sets = [];
+
         foreach(\$data as \$k=>\$v){
+
             \$sets[] = \"\$k=:\$k\";
+
         }
 
         \$sql = \"UPDATE {\$this->table}
@@ -796,6 +898,7 @@ class {$model}Model {
                 WHERE {\$this->pk}=:pk_id\";
 
         \$stmt = \$this->pdo->prepare(\$sql);
+
         \$data['pk_id'] = \$id;
 
         if(!\$stmt->execute(\$data)){
@@ -805,12 +908,18 @@ class {$model}Model {
         return \$stmt->rowCount();
     }
 
+    /* ================= DELETE ================= */
+
     public function delete(\$id){
+
         \$stmt = \$this->pdo->prepare(
-            \"DELETE FROM {\$this->table} WHERE {\$this->pk}=:id\"
+            \"DELETE FROM {\$this->table}
+             WHERE {\$this->pk}=:id\"
         );
+
         return \$stmt->execute(['id'=>\$id]);
     }
+
 }
 ";
 
@@ -958,19 +1067,36 @@ class {$controller}Controller extends BaseController {
             mkdir($folder, 0775, true);
         }
 
-        /* ================= PRE-PROCESSING DATA ================= */
+        /* ================= RELATION MAP ================= */
+
+        $relationMap = [];
+
+        foreach ($relations as $rel) {
+            $relationMap[$rel['COLUMN_NAME']] = [
+                'table' => $rel['REFERENCED_TABLE_NAME'],
+                'column' => $rel['REFERENCED_COLUMN_NAME']
+            ];
+        }
+
+        /* ================= TABLE HEADER ================= */
+
         $thead = "";
         $rowColumns = "";
+
         foreach ($columns as $col) {
+
             $colName = $col['COLUMN_NAME'];
-            // Mengubah snake_case ke Label (contoh: user_name -> User Name)
-            $label = ucwords(str_replace('_', ' ', $colName));
-            $thead .= "<th data-sort='{$col['COLUMN_NAME']}' onclick=\"sortTable('{$col['COLUMN_NAME']}')\" style='cursor:pointer'>
+            $label   = ucwords(str_replace('_', ' ', $colName));
+
+            $thead .= "<th data-sort='{$colName}' onclick=\"sortTable('{$colName}')\" style='cursor:pointer'>
             {$label} <span class='sort-icon'></span>
-           </th>\n";
-            $rowColumns .= "        html += `<td>\${row.{$colName} ?? ''}</td>`;\n";
+        </th>\n";
+
+            $rowColumns .= "html += `<td>\${row.{$colName} ?? ''}</td>`;\n";
         }
+
         $colspan = count($columns) + 2;
+
 
         /* ================= INDEX TEMPLATE (JS & HTML) ================= */
         $index = <<<'HTML'
@@ -1308,178 +1434,225 @@ class {$controller}Controller extends BaseController {
 
         /* ================= FORM FIELDS GENERATOR (SMART VERSION) ================= */
 
-        $formFields = '';
+        $formFields = "";
+
+        $skipFields = [
+            $pk,
+            'created_at',
+            'updated_at',
+            'deleted_at'
+        ];
 
         foreach ($columns as $col) {
 
             $name  = $col['COLUMN_NAME'];
-            $type  = strtolower($col['DATA_TYPE']);
-            $ctype = strtolower($col['COLUMN_TYPE']);
+            $type  = strtolower($col['DATA_TYPE'] ?? '');
+            $ctype = strtolower($col['COLUMN_TYPE'] ?? $col['DATA_TYPE'] ?? '');
+
+            if (in_array($name, $skipFields)) continue;
+
+            if (strpos(($col['EXTRA'] ?? ''), 'auto_increment') !== false) continue;
+
             $label = ucwords(str_replace('_', ' ', $name));
 
-            // Skip PK & Auto Increment
-            if ($name === $pk || strpos(($col['EXTRA'] ?? ''), 'auto_increment') !== false) continue;
-
             $required = ($col['IS_NULLABLE'] === 'NO') ? 'required' : '';
-            $readonly = in_array($name, ['created_at', 'updated_at']) ? 'readonly' : '';
+
             $placeholder = "placeholder='Masukkan {$label}'";
 
-            /* ================= TYPE MAPPING ================= */
+            /* ================= RELATION ================= */
 
-            // ENUM
-            if ($type === 'enum') {
+            if (isset($relationMap[$name])) {
 
-                preg_match("/^enum\((.*)\)$/", $col['COLUMN_TYPE'], $matches);
-                $options = explode(',', $matches[1] ?? "''");
+                $refTable = $relationMap[$name]['table'];
 
-                $input = "<select name='{$name}' class='form-select' {$required}>";
-                $input .= "<option value=''>-- Pilih {$label} --</option>";
+                $input = "
+                <select name='{$name}' class='form-select' {$required}>
+                    <option value=''>-- Pilih {$label} --</option>
+
+                    <?php foreach(\${$refTable} as \$r): ?>
+
+                        <option value='<?=\$r['id']?>'
+                            <?= (isset(\$data['{$name}']) && \$data['{$name}']==\$r['id'])?'selected':'' ?>>
+
+                            <?=\$r['name'] ?? \$r['title'] ?? \$r['id']?>
+
+                        </option>
+
+                    <?php endforeach; ?>
+
+                </select>";
+            }
+
+            /* ================= ENUM ================= */ elseif ($type === 'enum') {
+
+                preg_match("/^enum\((.*)\)$/", $ctype, $matches);
+
+                $options = explode(',', $matches[1] ?? "");
+
+                $input = "<select name='{$name}' class='form-select' {$required}>
+            <option value=''>-- Pilih {$label} --</option>";
 
                 foreach ($options as $opt) {
-                    $v = trim($opt, "'");
+
+                    $v = trim($opt, " '");
+
                     $input .= "
-                        <option value='{$v}' <?= (isset(\$data['{$name}']) && \$data['{$name}']=='{$v}')?'selected':'' ?>>
-                            " . ucfirst($v) . "
-                        </option>";
+                <option value='{$v}'
+                    <?= (isset(\$data['{$name}']) && \$data['{$name}']=='{$v}')?'selected':'' ?>>
+                    " . ucfirst($v) . "
+                </option>";
                 }
 
                 $input .= "</select>";
             }
 
-            // BOOLEAN tinyint(1)
-            elseif ($type === 'tinyint' && strpos($ctype, '(1)') !== false) {
+            /* ================= BOOLEAN ================= */ elseif ($type === 'tinyint' && preg_match('/tinyint\(1\)/', $ctype)) {
 
                 $input = "
-                    <div class='form-check form-switch'>
-                        <input type='hidden' name='{$name}' value='0'>
-                        <input class='form-check-input' type='checkbox' value='1' 
-                            name='{$name}'
-                            <?= (!empty(\$data['{$name}']))?'checked':'' ?>>
-                        <label class='form-check-label'>Aktif</label>
-                    </div>";
+            <div class='form-check form-switch'>
+
+                <input type='hidden' name='{$name}' value='0'>
+
+                <input class='form-check-input'
+                       type='checkbox'
+                       name='{$name}'
+                       value='1'
+                       <?= (!empty(\$data['{$name}']))?'checked':'' ?>>
+
+                <label class='form-check-label'>Aktif</label>
+
+            </div>";
             }
 
-            // NUMBER TYPES
-            elseif (in_array($type, ['int', 'bigint', 'smallint', 'mediumint'])) {
+            /* ================= NUMBER ================= */ elseif (in_array($type, ['int', 'bigint', 'smallint', 'mediumint'])) {
 
                 $min = (strpos($ctype, 'unsigned') !== false) ? "min='0'" : "";
-                $input = "<input type='number' {$min} name='{$name}' 
-                    class='form-control'
-                    value='<?= \$data['{$name}'] ?? '' ?>'
-                    {$placeholder} {$required}>";
+
+                $input = "<input type='number'
+                name='{$name}'
+                class='form-control'
+                value='<?= \$data['{$name}'] ?? '' ?>'
+                {$placeholder}
+                {$required}
+                {$min}>";
             }
 
-            // DECIMAL / FLOAT
-            elseif (in_array($type, ['decimal', 'float', 'double'])) {
+            /* ================= DECIMAL ================= */ elseif (in_array($type, ['decimal', 'float', 'double'])) {
 
-                preg_match('/\((\d+),(\d+)\)/', $ctype, $m);
-                $step = isset($m[2]) ? "step='0." . str_repeat('0', $m[2] - 1) . "1'" : "step='any'";
-
-                $input = "<input type='number' {$step}
-                    name='{$name}'
-                    class='form-control'
-                    value='<?= \$data['{$name}'] ?? '' ?>'
-                    {$placeholder} {$required}>";
+                $input = "<input type='number'
+                step='any'
+                name='{$name}'
+                class='form-control'
+                value='<?= \$data['{$name}'] ?? '' ?>'
+                {$placeholder}
+                {$required}>";
             }
 
-            // TEXTAREA
-            elseif (in_array($type, ['text', 'longtext', 'mediumtext'])) {
+            /* ================= TEXTAREA ================= */ elseif (in_array($type, ['text', 'longtext', 'mediumtext'])) {
 
-                $input = "<textarea name='{$name}'
-                    class='form-control'
-                    rows='4'
-                    {$placeholder} {$required}><?= htmlspecialchars(\$data['{$name}'] ?? '') ?></textarea>";
+                $input = "<textarea
+                name='{$name}'
+                class='form-control'
+                rows='4'
+                {$placeholder}
+                {$required}
+            ><?= htmlspecialchars(\$data['{$name}'] ?? '') ?></textarea>";
             }
 
-            // DATE
-            elseif ($type === 'date') {
+            /* ================= DATE ================= */ elseif ($type === 'date') {
 
                 $input = "<input type='date'
-                    name='{$name}'
-                    class='form-control'
-                    value='<?= \$data['{$name}'] ?? '' ?>'
-                    {$required}>";
+                name='{$name}'
+                class='form-control'
+                value='<?= \$data['{$name}'] ?? '' ?>'
+                {$required}>";
             }
 
-            // DATETIME
-            elseif (in_array($type, ['datetime', 'timestamp'])) {
+            /* ================= DATETIME ================= */ elseif (in_array($type, ['datetime', 'timestamp'])) {
 
                 $input = "<input type='datetime-local'
-                    name='{$name}'
-                    class='form-control'
-                    value='<?= isset(\$data['{$name}']) ? date(\"Y-m-d\TH:i\", strtotime(\$data['{$name}'])) : '' ?>'
-                    {$required}>";
+                name='{$name}'
+                class='form-control'
+                value='<?= isset(\$data['{$name}']) ? date(\"Y-m-d\TH:i\",strtotime(\$data['{$name}'])) : '' ?>'
+                {$required}>";
             }
 
-            // EMAIL AUTO DETECT
-            elseif (strpos($name, 'email') !== false) {
+            /* ================= EMAIL ================= */ elseif (strpos($name, 'email') !== false) {
 
                 $input = "<input type='email'
-                    name='{$name}'
-                    class='form-control'
-                    value='<?= \$data['{$name}'] ?? '' ?>'
-                    {$placeholder} {$required}>";
+                name='{$name}'
+                class='form-control'
+                value='<?= \$data['{$name}'] ?? '' ?>'
+                {$placeholder}
+                {$required}>";
             }
 
-            // PASSWORD AUTO DETECT
-            elseif (strpos($name, 'password') !== false) {
+            /* ================= PASSWORD ================= */ elseif (strpos($name, 'password') !== false) {
 
                 $input = "<input type='password'
-                    name='{$name}'
-                    class='form-control'
-                    {$placeholder} {$required}>";
+                name='{$name}'
+                class='form-control'
+                {$placeholder}
+                {$required}>";
             }
 
-            // IMAGE / FILE AUTO DETECT
-            elseif (strpos($name, 'image') !== false || strpos($name, 'photo') !== false || strpos($name, 'file') !== false) {
-
+            /* ================= FILE ================= */ elseif (strpos($name, 'image') !== false || strpos($name, 'photo') !== false || strpos($name, 'file') !== false) {
                 $input = "
-                    <input type='file' name='{$name}' class='form-control' {$required}>
+                    <input type='file' name='{$name}' class='form-control'>
+
                     <?php if(!empty(\$data['{$name}'])): ?>
-                        <small class='text-muted d-block mt-2'>File saat ini: <?= \$data['{$name}'] ?></small>
+
+                        <small class='text-muted d-block mt-2'>
+                            File saat ini: <?= \$data['{$name}'] ?>
+                        </small>
+
                     <?php endif; ?>";
             }
 
-            // DEFAULT TEXT
-            else {
+            /* ================= DEFAULT TEXT ================= */ else {
 
                 $input = "<input type='text'
-                    name='{$name}'
-                    class='form-control'
-                    value='<?= htmlspecialchars(\$data['{$name}'] ?? '') ?>'
-                    {$placeholder} {$required} {$readonly}>";
+                name='{$name}'
+                class='form-control'
+                value='<?= htmlspecialchars(\$data['{$name}'] ?? '') ?>'
+                {$placeholder}
+                {$required}>";
             }
 
             $formFields .= "
-                <div class='mb-3'>
-                    <label class='form-label small fw-bold'>{$label}</label>
-                    {$input}
-                </div>";
+            <div class='mb-3'>
+                <label class='form-label small fw-bold'>{$label}</label>
+                {$input}
+            </div>";
         }
 
         /* ================= FORM TEMPLATE ================= */
+
         $formTemplate = <<<HTML
             <form id="dataForm" enctype="multipart/form-data">
 
-                <?php if(isset(\$data['{$pk}'])): ?>
-                    <input type="hidden" name="{$pk}" value="<?= \$data['{$pk}'] ?>">
-                <?php endif; ?>
+            <?php if(isset(\$data['{$pk}'])): ?>
 
-                {$formFields}
+                <input type="hidden" name="{$pk}" value="<?= \$data['{$pk}'] ?>">
 
-                <hr>
+             <?php endif; ?>
 
-                <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">
-                        Batal
-                    </button>
-                    <button type="submit" class="btn btn-primary px-4">
-                        Simpan
-                    </button>
-                </div>
+            {$formFields}
 
-            </form>
+            <hr>
+
+            <div class="d-flex justify-content-end gap-2">
+
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+                    Batal
+                </button>
+                <button type="submit" class="btn btn-primary px-4">
+                    Simpan
+                </button>
+            </div>
+        </form>
         HTML;
+
         file_put_contents("{$folder}/form.php", $formTemplate);
     }
 }
