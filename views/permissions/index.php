@@ -13,7 +13,7 @@
 
                     <?php foreach ($roles as $role): ?>
                         <a href="?action=permissions.index&role_id=<?= $role['id'] ?>"
-                           class="role-card p-3 mb-2 rounded <?= $role['id'] == $selectedRoleId ? 'active' : '' ?>">
+                            class="role-card p-3 mb-2 rounded <?= $role['id'] == $selectedRoleId ? 'active' : '' ?>">
                             <div class="fw-semibold">
                                 <?= htmlspecialchars($role['name']) ?>
                             </div>
@@ -58,38 +58,101 @@
 
                                 <tbody>
 
-                                <?php foreach ($matrix as $resource => $data): ?>
-                                    <tr>
+                                    <?php
 
-                                        <td class="fw-semibold">
-                                            <?= htmlspecialchars($data['menu_name']) ?>
-                                            <div class="text-muted small">
-                                                <?= $data['route'] ?>
-                                            </div>
-                                        </td>
+                                    function renderPermissionRows($menus, $permissionMap, $rolePermissions, $level = 0)
+                                    {
 
-                                        <?php foreach (['view','create','edit','delete'] as $act): ?>
-                                            <td class="text-center">
+                                        foreach ($menus as $menu):
 
-                                                <?php if (isset($data['actions'][$act])): 
-                                                    $perm = $data['actions'][$act];
-                                                ?>
-                                                    <input type="checkbox"
-                                                           name="permissions[]"
-                                                           value="<?= $perm['id'] ?>"
-                                                           <?= in_array($perm['id'], $rolePermissions) ? 'checked' : '' ?>>
-                                                <?php else: ?>
-                                                    —
-                                                <?php endif; ?>
+                                            $routeParts = explode('.', $menu['route'] ?? '');
+                                            $resource = strtolower($routeParts[0] ?? '');
 
-                                            </td>
-                                        <?php endforeach; ?>
+                                            $isParent = empty($menu['parent_id']);
 
-                                    </tr>
-                                <?php endforeach; ?>
+                                    ?>
+
+                                            <tr class="<?= $isParent ? 'perm-parent' : 'perm-child' ?>">
+
+                                                <td class="perm-menu" style="padding-left: <?= 20 + ($level * 25) ?>px">
+
+                                                    <?php if ($isParent): ?>
+
+                                                        <div class="perm-parent-title">
+
+                                                            <?= htmlspecialchars($menu['name']) ?>
+
+                                                        </div>
+
+                                                    <?php else: ?>
+
+                                                        <div class="perm-child-title">
+
+                                                            <span class="perm-branch">└</span>
+
+                                                            <?= htmlspecialchars($menu['name']) ?>
+
+                                                        </div>
+
+                                                    <?php endif; ?>
+
+                                                    <div class="perm-route">
+
+                                                        <?= $menu['route'] ?>
+
+                                                    </div>
+
+                                                </td>
+
+                                                <?php foreach (['view', 'create', 'edit', 'delete'] as $act): ?>
+
+                                                    <td class="text-center">
+
+                                                        <?php if (isset($permissionMap[$resource][$act])):
+
+                                                            $perm = $permissionMap[$resource][$act];
+
+                                                        ?>
+
+                                                            <input
+                                                                type="checkbox"
+                                                                class="form-check-input perm-checkbox"
+                                                                name="permissions[]"
+                                                                value="<?= $perm['id'] ?>"
+                                                                <?= in_array($perm['id'], $rolePermissions) ? 'checked' : '' ?>>
+
+                                                        <?php else: ?>
+
+                                                            <span class="perm-none">—</span>
+
+                                                        <?php endif; ?>
+
+                                                    </td>
+
+                                                <?php endforeach; ?>
+
+                                            </tr>
+
+                                    <?php
+
+                                            if (!empty($menu['children'])) {
+
+                                                renderPermissionRows(
+                                                    $menu['children'],
+                                                    $permissionMap,
+                                                    $rolePermissions,
+                                                    $level + 1
+                                                );
+                                            }
+
+                                        endforeach;
+                                    }
+
+                                    renderPermissionRows($menuTree, $permissionMap, $rolePermissions);
+
+                                    ?>
 
                                 </tbody>
-
                             </table>
 
                         </div>
@@ -110,69 +173,37 @@
 </div>
 
 <style>
-.role-card {
-    display:block;
-    background: var(--bs-tertiary-bg);
-    text-decoration:none;
-    color:inherit;
-}
+    .role-card {
+        display: block;
+        background: var(--bs-tertiary-bg);
+        text-decoration: none;
+        color: inherit;
+    }
 
-.role-card.active {
-    background: var(--bs-primary);
-    color:white;
-}
+    .role-card.active {
+        background: var(--bs-primary);
+        color: white;
+    }
 </style>
+<script>
+    document.querySelectorAll('.perm-parent input[type=checkbox]').forEach(parent => {
 
-<!-- <script>
-    document.addEventListener('DOMContentLoaded', function() {
+        parent.addEventListener('change', function() {
 
-        let activeRole = document.querySelector('.role-card.active');
+            let row = this.closest('tr')
+            let next = row.nextElementSibling
 
-        document.querySelectorAll('.role-card').forEach(card => {
-            card.addEventListener('click', async function() {
+            while (next && next.classList.contains('perm-child')) {
 
-                if (activeRole) activeroles.classList.remove('active');
-                this.classList.add('active');
-                activeRole = this;
+                let cb = next.querySelectorAll('input[type=checkbox]')[this.cellIndex - 1]
 
-                const roleId = this.dataset.id;
-                const roleName = this.dataset.name;
+                if (cb) cb.checked = this.checked
 
-                document.getElementById('selectedRole').value = roleId;
-                document.getElementById('roleLabel').innerText = " - " + roleName;
+                next = next.nextElementSibling
 
-                try {
-                    const res = await fetch('?action=permissions.getRolePermissions&role_id=' + roleId);
-                    const data = await res.json();
+            }
 
-                    document.querySelectorAll('.permission-checkbox')
-                        .forEach(cb => cb.checked = false);
+        })
 
-                    data.forEach(id => {
-                        const el = document.getElementById('perm' + id);
-                        if (el) el.checked = true;
-                    });
-
-                } catch (err) {
-                    console.error("Gagal mengambil permission:", err);
-                }
-
-            });
-        });
-
-        const toggleBtn = document.getElementById('toggleGlobal');
-
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', function() {
-
-                const checkboxes = document.querySelectorAll('.permission-checkbox');
-                if (!checkboxes.length) return;
-
-                const allChecked = [...checkboxes].every(cb => cb.checked);
-                checkboxes.forEach(cb => cb.checked = !allChecked);
-
-            });
-        }
-
-    });
-</script> -->
+    })
+</script>
