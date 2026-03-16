@@ -1,3 +1,7 @@
+<?php
+$back = $_GET['back'] ?? null;
+?>
+
 <div class="content-area d-flex justify-content-center align-items-center">
 
     <div class="text-center px-3" style="max-width:600px;">
@@ -17,12 +21,21 @@
         <?php endif; ?>
 
         <div class="d-flex flex-wrap justify-content-center gap-2">
-            <a href="javascript:history.back()" class="btn btn-outline-secondary px-4">
-                ← Kembali
-            </a>
+
+            <?php if ($back): ?>
+                <a href="?action=<?= htmlspecialchars($back) ?>" class="btn btn-outline-secondary px-4">
+                    ← Kembali
+                </a>
+            <?php else: ?>
+                <a href="javascript:history.back()" class="btn btn-outline-secondary px-4">
+                    ← Kembali
+                </a>
+            <?php endif; ?>
+
             <a href="?action=dashboard" class="btn btn-primary px-4">
                 Ke Dashboard
             </a>
+
         </div>
 
     </div>

@@ -6,7 +6,7 @@ require_once 'controllers/UserController.php';
 require_once 'controllers/PermissionController.php';
 require_once 'controllers/DashboardController.php';
 require_once 'controllers/MenuController.php';
-
+    
 /*
 |--------------------------------------------------------------------------
 | Public Routes
@@ -94,7 +94,6 @@ switch ($prefix) {
         $controller = new PermissionController();
         break;
 
-    
     default:
         abort(404, "Route Not Found", "Halaman tidak ditemukan.");
 }

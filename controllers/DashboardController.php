@@ -7,7 +7,6 @@ class DashboardController extends BaseController
 {
     public function index()
     {
-        // dd('halooo');
         global $pdo;
 
         $users = $pdo->query("
@@ -17,21 +16,29 @@ class DashboardController extends BaseController
             ORDER BY users.id ASC
         ")->fetchAll();
 
-        $this->render('dashboard', compact('users'), 'main');
+        $layout = is_ajax() ? null : 'main';
+
+        $this->render('dashboard', compact('users'), $layout);
     }
 
     public function forbidden($code = '', $title = '', $message = '')
     {
-        $this->render('errors/error', compact('code', 'title', 'message'), 'main');
+        $layout = is_ajax() ? null : 'main';
+
+        $this->render('errors/error', compact('code', 'title', 'message'), $layout);
     }
 
     public function notFound($code = '', $title = '', $message = '')
     {
-        $this->render('errors/error', compact('code', 'title', 'message'), 'main');
+        $layout = is_ajax() ? null : 'main';
+
+        $this->render('errors/error', compact('code', 'title', 'message'), $layout);
     }
 
     public function error($code = '', $title = '', $message = '')
     {
-        $this->render('errors/error', compact('code', 'title', 'message'), 'main');
+        $layout = is_ajax() ? null : 'main';
+
+        $this->render('errors/error', compact('code', 'title', 'message'), $layout);
     }
 }

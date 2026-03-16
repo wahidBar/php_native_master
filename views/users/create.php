@@ -61,7 +61,12 @@
 
                     <div class="mb-3">
                         <label class="form-label">Tanggal Lahir</label>
-                        <input type="date" name="date_of_birth" class="form-control">
+                        <input
+                            type="date"
+                            name="date_of_birth"
+                            class="form-control"
+                            min="1900-01-01"
+                            max="2099-12-31">
                     </div>
 
                 </div>

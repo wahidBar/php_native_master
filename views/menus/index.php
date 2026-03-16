@@ -15,6 +15,7 @@
 
     <!-- FILTER -->
     <div class="card-body border-bottom">
+        <?php flash_show(); ?>
         <div class="row g-3">
 
             <div class="col-md-4">
@@ -123,7 +124,7 @@
                             <i class="feather-edit"></i>
                         </a>
 
-                        <a onclick="return confirm('Yakin hapus menu ini?')"
+                        <a onclick="return confirm('Yakin hapus menu ${m.name}?')"
                             href="?action=menus.delete&id=${m.id}"
                             class="btn btn-sm btn-outline-danger">
                             <i class="feather-trash-2"></i>
