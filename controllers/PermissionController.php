@@ -10,87 +10,101 @@ class PermissionController extends BaseController
         global $pdo;
 
         /* =========================
-           ROLES
-        ========================== */
+       ROLES
+    ========================== */
+
         $roles = $pdo->query("
-            SELECT r.*,
-                (SELECT COUNT(*) 
-                 FROM role_permissions rp 
-                 WHERE rp.role_id = r.id) as total_permission
-            FROM roles r
-            ORDER BY r.id ASC
-        ")->fetchAll(PDO::FETCH_ASSOC);
+        SELECT r.*,
+        (SELECT COUNT(*) FROM role_permissions rp WHERE rp.role_id=r.id) total_permission
+        FROM roles r
+        ORDER BY r.id
+    ")->fetchAll(PDO::FETCH_ASSOC);
 
         $selectedRoleId = $_GET['role_id'] ?? ($roles[0]['id'] ?? 0);
 
         /* =========================
-           MENUS
-        ========================== */
+       MENUS
+    ========================== */
+
         $menus = $pdo->query("
-            SELECT *
-            FROM menus
-            ORDER BY order_number ASC
-        ")->fetchAll(PDO::FETCH_ASSOC);
+        SELECT *
+        FROM menus
+        ORDER BY parent_id ASC, order_number ASC
+    ")->fetchAll(PDO::FETCH_ASSOC);
 
         /* =========================
-           ALL PERMISSIONS
-        ========================== */
-        $permissions = $pdo->query("
-            SELECT * FROM permissions
-        ")->fetchAll(PDO::FETCH_ASSOC);
+       PERMISSIONS
+    ========================== */
+
+        $permissions = $pdo->query("SELECT * FROM permissions")
+            ->fetchAll(PDO::FETCH_ASSOC);
 
         /* =========================
-           ROLE PERMISSIONS
-        ========================== */
+       ROLE PERMISSION
+    ========================== */
+
         $rolePermissions = [];
 
         if ($selectedRoleId) {
+
             $stmt = $pdo->prepare("
-                SELECT permission_id 
-                FROM role_permissions 
-                WHERE role_id = ?
-            ");
+            SELECT permission_id
+            FROM role_permissions
+            WHERE role_id=?
+        ");
+
             $stmt->execute([$selectedRoleId]);
+
             $rolePermissions = $stmt->fetchAll(PDO::FETCH_COLUMN);
         }
 
         /* =========================
-           BUILD MATRIX
-        ========================== */
-        $matrix = [];
+       BUILD MENU TREE
+    ========================== */
+
+        $menuTree = [];
+        $refs = [];
 
         foreach ($menus as $menu) {
 
-            if (!$menu['route']) continue;
+            $menu['children'] = [];
 
-            // Ambil resource dari route → users.index → user
-            $routeParts = explode('.', $menu['route']);
-            $resource = strtolower($routeParts[0]);
+            $refs[$menu['id']] = $menu;
 
-            $matrix[$resource] = [
-                'menu_name' => $menu['name'],
-                'route'     => $menu['route'],
-                'actions'   => []
-            ];
+            if ($menu['parent_id']) {
 
-            // Cari permission berdasarkan slug: users.*
-            foreach ($permissions as $perm) {
+                $refs[$menu['parent_id']]['children'][] = &$refs[$menu['id']];
+            } else {
 
-                $slugParts = explode('.', $perm['slug']);
-                $permResource = strtolower($slugParts[0] ?? '');
-                $action = $slugParts[1] ?? null;
-
-                // Cocokkan resource (user ↔ users)
-                if (rtrim($permResource, 's') === rtrim($resource, 's')) {
-
-                    $matrix[$resource]['actions'][$action] = $perm;
-                }
+                $menuTree[] = &$refs[$menu['id']];
             }
+        }
+
+        /* =========================
+       BUILD PERMISSION MATRIX
+    ========================== */
+
+        $permissionMap = [];
+
+        foreach ($permissions as $perm) {
+
+            $slug = explode('.', $perm['slug']);
+
+            $resource = strtolower($slug[0] ?? '');
+            $action   = $slug[1] ?? '';
+
+            $permissionMap[$resource][$action] = $perm;
         }
 
         $this->render(
             'permissions/index',
-            compact('roles', 'matrix', 'selectedRoleId', 'rolePermissions'),
+            compact(
+                'roles',
+                'menuTree',
+                'permissionMap',
+                'selectedRoleId',
+                'rolePermissions'
+            ),
             'main'
         );
     }
@@ -135,7 +149,6 @@ class PermissionController extends BaseController
 
             $pdo->commit();
             flash("Hak akses berhasil diperbarui", "success");
-
         } catch (Exception $e) {
             $pdo->rollBack();
             flash("Terjadi kesalahan saat menyimpan", "danger");

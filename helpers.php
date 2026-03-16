@@ -19,7 +19,14 @@ function dd(...$vars)
     die();
 }
 
-
+function is_ajax()
+{
+    return (
+        (isset($_GET['ajax']) && $_GET['ajax'] == 1) ||
+        (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+        strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest')
+    );
+}
 
 /* ============================================================
 |  CSRF PROTECTION

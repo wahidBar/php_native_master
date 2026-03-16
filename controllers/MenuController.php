@@ -314,7 +314,7 @@ class MenuController extends BaseController
                     $relations = $stmtRel->fetchAll(PDO::FETCH_ASSOC);
                     $this->generateModel($model, $table, $pk, $columns, $relations);
                     $this->generateController($controller, $model, $view, $table, $pk);
-                    $this->generateViews($view, $table, $pk, $columns, $relations);
+                    $this->generateViews($name, $view, $table, $pk, $columns, $relations);
                 }
             }
 
@@ -978,12 +978,12 @@ class {$controller}Controller extends BaseController {
     public function edit(){
         \$id = \$_GET['id'] ?? null;
         if(!\$id){
-            http_response_code(400); exit;
+            abort(400,'Bad Request','ID tidak ditemukan');
         }
 
         \$data = \$this->model->find(\$id);
         if(!\$data){
-            http_response_code(404); exit;
+            abort(404,'Data tidak ditemukan');
         }
 
         \$this->render('{$view}/form',['data'=>\$data],null);
@@ -1060,7 +1060,7 @@ class {$controller}Controller extends BaseController {
         file_put_contents($file, $code);
     }
 
-    private function generateViews($view, $table, $pk, $columns, $relations)
+    private function generateViews($name, $view, $table, $pk, $columns, $relations)
     {
         $folder = BASE_PATH . "/views/" . $view;
         if (!is_dir($folder)) {
@@ -1103,7 +1103,7 @@ class {$controller}Controller extends BaseController {
         <div class="card shadow-sm border-0">
             <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
                 <div>
-                    <h4 class="fw-bold mb-0">Data {{label_table}}</h4>
+                    <h4 class="fw-bold mb-0">Data {{name}}</h4>
                     <small class="text-muted">Kelola data melalui tabel di bawah ini</small>
                 </div>
                 <button onclick="openForm()" class="btn btn-primary shadow-sm">
@@ -1112,6 +1112,7 @@ class {$controller}Controller extends BaseController {
             </div>
 
             <div class="card-body border-bottom">
+                <?php flash_show(); ?>
                 <div class="row">
                     <div class="col-md-4">
                         <div class="input-group">
@@ -1330,9 +1331,9 @@ class {$controller}Controller extends BaseController {
         }
 
         function openForm(){
-            document.getElementById('modalTitle').innerText = 'Tambah {{label_table}}';
+            document.getElementById('modalTitle').innerText = 'Tambah {{name}}';
 
-            fetch('?action={{view}}.create&ajax=1')
+            fetch('?action={{view}}.create&ajax=1&back={{view}}')
                 .then(res => res.text())
                 .then(html => {
                     document.getElementById('modalBody').innerHTML = html;
@@ -1344,9 +1345,9 @@ class {$controller}Controller extends BaseController {
         }
 
         function editData(id){
-            document.getElementById('modalTitle').innerText = 'Edit {{label_table}}';
+            document.getElementById('modalTitle').innerText = 'Edit {{name}}';
 
-            fetch(`?action={{view}}.edit&id=${id}&ajax=1`)
+            fetch(`?action={{view}}.edit&id=${id}&ajax=1&back={{view}}`)
                 .then(res => res.text())
                 .then(html => {
                     document.getElementById('modalBody').innerHTML = html;
@@ -1360,19 +1361,19 @@ class {$controller}Controller extends BaseController {
         function deleteData(id){
             if(!confirm('Apakah Anda yakin ingin menghapus data ini?')) return;
 
-            fetch(`?action={{view}}.delete&ajax=1`, {
+            fetch(`?action={{view}}.delete&ajax=1&back={{view}}`, {
                 method: 'POST',
                 headers: {'Content-Type':'application/x-www-form-urlencoded'},
                 body: `id=${id}`
             })
-            .then(res => res.json())
-            .then(res => {
-                if(res.success){
-                    loadData(currentPage);
-                } else {
-                    alert(res.message || 'Gagal menghapus data');
-                }
-            });
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success) {
+                        loadData(currentPage);
+                    } else {
+                        alert(res.message || 'Gagal menghapus data');
+                    }
+                });
         }
 
         /* ===============================
@@ -1425,8 +1426,8 @@ class {$controller}Controller extends BaseController {
 
         // Placeholder replacement for Index
         $index = str_replace(
-            ['{{table}}', '{{label_table}}', '{{view}}', '{{thead}}', '{{pk}}', '{{colspan}}', '{{row_columns}}'],
-            [$table, ucwords(str_replace('_', ' ', $table)), $view, $thead, $pk, $colspan, $rowColumns],
+            ['{{table}}', '{{label_table}}', '{{name}}', '{{view}}', '{{thead}}', '{{pk}}', '{{colspan}}', '{{row_columns}}'],
+            [$table, ucwords(str_replace('_', ' ', $table)), $name, $view, $thead, $pk, $colspan, $rowColumns],
             $index
         );
 
